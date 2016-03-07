@@ -71,6 +71,8 @@ public class JCallGraph {
                     ClassVisitor visitor = new ClassVisitor(cp.parse());
                     visitor.start();
                 }
+                
+                jar.close();
             }
         } catch (IOException e) {
             System.err.println("Error while processing jar: " + e.getMessage());
