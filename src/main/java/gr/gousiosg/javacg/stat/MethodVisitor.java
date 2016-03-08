@@ -41,6 +41,9 @@ import org.apache.bcel.generic.InstructionConstants;
 import org.apache.bcel.generic.InstructionHandle;
 import org.apache.bcel.generic.MethodGen;
 import org.apache.bcel.generic.ReturnInstruction;
+import org.apache.bcel.generic.Type;
+
+import ca.jappa.pojo.Node;
 
 /**
  * The simplest of method visitors, prints any invoked method
@@ -50,23 +53,26 @@ import org.apache.bcel.generic.ReturnInstruction;
  */
 public class MethodVisitor extends EmptyVisitor {
 
-    JavaClass visitedClass;
-    private MethodGen mg;
+    JavaClass javaClass;
+    private MethodGen methodGen;
     private ConstantPoolGen cp;
     private String format;
+    private Node parentNode;
 
-    public MethodVisitor(MethodGen m, JavaClass jc) {
-        visitedClass = jc;
-        mg = m;
-        cp = mg.getConstantPool();
-        format = "M:" + visitedClass.getClassName() + ":" + mg.getName() 
+    public MethodVisitor(MethodGen methodGen, JavaClass javaClass, Node parentNode) {
+        this.javaClass = javaClass;
+        this.methodGen = methodGen;
+        cp = this.methodGen.getConstantPool();
+        format = "M:" + javaClass.getClassName() + ":" + this.methodGen.getName() 
             + " " + "(%s)%s:%s";
+        this.parentNode = parentNode;
+        
     }
 
     public void start() {
-        if (mg.isAbstract() || mg.isNative())
+        if (this.methodGen.isAbstract() || this.methodGen.isNative())
             return;
-        for (InstructionHandle ih = mg.getInstructionList().getStart(); 
+        for (InstructionHandle ih = this.methodGen.getInstructionList().getStart(); 
                 ih != null; ih = ih.getNext()) {
             Instruction i = ih.getInstruction();
             
@@ -86,20 +92,24 @@ public class MethodVisitor extends EmptyVisitor {
     @Override
     public void visitINVOKEVIRTUAL(INVOKEVIRTUAL i) {
         System.out.println(String.format(format,"M",i.getReferenceType(cp),i.getMethodName(cp)));
+        JCallGraph.graph.addNeighbour(parentNode, new Node(i.getReferenceType(cp), this.methodGen.getName()));
     }
 
     @Override
     public void visitINVOKEINTERFACE(INVOKEINTERFACE i) {
         System.out.println(String.format(format,"I",i.getReferenceType(cp),i.getMethodName(cp)));
+        JCallGraph.graph.addNeighbour(parentNode, new Node(javaClass.getClassName(), this.methodGen.getName()));
     }
 
     @Override
     public void visitINVOKESPECIAL(INVOKESPECIAL i) {
         System.out.println(String.format(format,"O",i.getReferenceType(cp),i.getMethodName(cp)));
+        JCallGraph.graph.addNeighbour(parentNode, new Node(javaClass.getClassName(), this.methodGen.getName()));
     }
 
     @Override
     public void visitINVOKESTATIC(INVOKESTATIC i) {
         System.out.println(String.format(format,"S",i.getReferenceType(cp),i.getMethodName(cp)));
+        JCallGraph.graph.addNeighbour(parentNode, new Node(javaClass.getClassName(), this.methodGen.getName()));
     }
 }

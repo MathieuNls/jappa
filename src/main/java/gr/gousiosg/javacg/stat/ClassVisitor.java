@@ -36,6 +36,8 @@ import org.apache.bcel.classfile.Method;
 import org.apache.bcel.generic.ConstantPoolGen;
 import org.apache.bcel.generic.MethodGen;
 
+import ca.jappa.pojo.Node;
+
 /**
  * The simplest of class visitors, invokes the method visitor class for each
  * method found.
@@ -55,8 +57,15 @@ public class ClassVisitor extends EmptyVisitor {
     public void visitJavaClass(JavaClass jc) {
         jc.getConstantPool().accept(this);
         Method[] methods = jc.getMethods();
-        for (int i = 0; i < methods.length; i++)
-            methods[i].accept(this);
+        
+        //System.out.println("X: "+ jc.getClassName());
+        
+        for (int i = 0; i < methods.length; i++){
+        	methods[i].accept(this);
+        	//System.out.println("X: "+ methods[i].getName());
+        }
+
+            
     }
 
     public void visitConstantPool(ConstantPool constantPool) {
@@ -74,8 +83,10 @@ public class ClassVisitor extends EmptyVisitor {
     }
 
     public void visitMethod(Method method) {
+    	Node node = new Node(clazz.getClassName(), method.getName());
+    	JCallGraph.graph.addNode(node);
         MethodGen mg = new MethodGen(method, clazz.getClassName(), constants);
-        MethodVisitor visitor = new MethodVisitor(mg, clazz);
+        MethodVisitor visitor = new MethodVisitor(mg, clazz, node);
         visitor.start(); 
     }
 
