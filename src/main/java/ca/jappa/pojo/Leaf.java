@@ -1,22 +1,27 @@
 package ca.jappa.pojo;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
-public class Node {
+public class Leaf implements Comparable<Leaf>{
 	
 	private String className;
 	private String methodName;
 	private List<String> args;
-	
+	private List<Leaf> leaves;
+	private int uuid;
 	/**
 	 * @param className
 	 * @param methodName
 	 */
-	public Node(String className, String methodName) {
+	public Leaf(String className, String methodName, int uuid) {
 		super();
 		this.className = className;
 		this.methodName = methodName;
+		this.leaves = new LinkedList<Leaf>();
+		this.uuid = uuid;
 	}
 
 	/**
@@ -57,6 +62,7 @@ public class Node {
 		args.add(arg);
 	}
 
+
 	/**
 	 * @return
 	 */
@@ -70,14 +76,53 @@ public class Node {
 	public void setArgs(List<String> args) {
 		this.args = args;
 	}
+	
+	public void addLeaf(Leaf leaf){
+		this.leaves.add(leaf);
+	}
+	
+	public List<Leaf> getLeaves() {
+		return leaves;
+	}
+
+	public void setLeaves(List<Leaf> leaves) {
+		this.leaves = leaves;
+	}
+
+	public int getUuid() {
+		return uuid;
+	}
+
+	public void setUuid(int uuid) {
+		this.uuid = uuid;
+	}
 
 	/* (non-Javadoc)
 	 * @see java.lang.Object#toString()
 	 */
 	@Override
 	public String toString() {
-		return "Node [className=" + className + ", methodName=" + methodName
-				+ ", args=" + args + "]";
+		return toStringWithTabs("");
+	}
+	
+	public String toStringWithTabs(String tabs){
+		String r = tabs + className + "." + methodName + "("+ ((args == null) ? "" : this.argsString()) + ")\r\n";
+		for(Leaf l : this.leaves){
+			r += l.toStringWithTabs(tabs + "\t");
+		}
+		return r;
+	}
+	
+	private String argsString(){
+		String argsString = "";
+		
+		for (int i = 0; i < args.size(); i++) {
+			argsString += args.get(i);
+			if(i != args.size()-1){
+				argsString += ";";
+			}
+		}
+		return argsString;
 	}
 
 	/* (non-Javadoc)
@@ -106,7 +151,7 @@ public class Node {
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		Node other = (Node) obj;
+		Leaf other = (Leaf) obj;
 		if (args == null) {
 			if (other.args != null)
 				return false;
@@ -124,6 +169,11 @@ public class Node {
 			return false;
 		
 		return true;
+	}
+
+	@Override
+	public int compareTo(Leaf o) {
+		return this.uuid - o.getUuid();
 	}
 	
 	

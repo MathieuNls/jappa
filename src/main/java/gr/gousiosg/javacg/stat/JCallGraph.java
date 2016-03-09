@@ -36,7 +36,7 @@ import java.util.jar.JarFile;
 
 import org.apache.bcel.classfile.ClassParser;
 
-import ca.jappa.pojo.Graph;
+import ca.jappa.pojo.CallTree;
 
 /**
  * Constructs a callgraph out of a JAR archive. Can combine multiple archives
@@ -47,7 +47,7 @@ import ca.jappa.pojo.Graph;
  */
 public class JCallGraph {
 	
-	public static Graph graph;
+	public static CallTree callTree;
 
     public static void main(String[] args) {
         ClassParser cp;
@@ -65,7 +65,7 @@ public class JCallGraph {
                 }
                 
                 JarFile jar = new JarFile(f);
-                graph = new Graph();
+                callTree = new CallTree();
 
                 Enumeration<JarEntry> entries = jar.entries();
                 while (entries.hasMoreElements()) {
@@ -80,7 +80,7 @@ public class JCallGraph {
                     ClassVisitor visitor = new ClassVisitor(cp.parse());
                     visitor.start();
                 }
-                System.out.println(graph);
+                System.out.println(callTree);
                 
                 jar.close();
             }

@@ -39,77 +39,155 @@ import org.apache.bcel.generic.INVOKEVIRTUAL;
 import org.apache.bcel.generic.Instruction;
 import org.apache.bcel.generic.InstructionConstants;
 import org.apache.bcel.generic.InstructionHandle;
+import org.apache.bcel.generic.InvokeInstruction;
 import org.apache.bcel.generic.MethodGen;
 import org.apache.bcel.generic.ReturnInstruction;
 import org.apache.bcel.generic.Type;
 
-import ca.jappa.pojo.Node;
+import ca.jappa.pojo.CallTree;
+import ca.jappa.pojo.Leaf;
 
 /**
- * The simplest of method visitors, prints any invoked method
- * signature for all method invocations.
+ * The simplest of method visitors, prints any invoked method signature for all
+ * method invocations.
  * 
  * Class copied with modifications from CJKM: http://www.spinellis.gr/sw/ckjm/
  */
 public class MethodVisitor extends EmptyVisitor {
 
-    JavaClass javaClass;
-    private MethodGen methodGen;
-    private ConstantPoolGen cp;
-    private String format;
-    private Node parentNode;
+	private JavaClass javaClass;
+	private MethodGen methodGen;
+	private ConstantPoolGen cp;
+	private InvokeInstruction invokeInstruction;
+	private Leaf leaf;
 
-    public MethodVisitor(MethodGen methodGen, JavaClass javaClass, Node parentNode) {
-        this.javaClass = javaClass;
-        this.methodGen = methodGen;
-        cp = this.methodGen.getConstantPool();
-        format = "M:" + javaClass.getClassName() + ":" + this.methodGen.getName() 
-            + " " + "(%s)%s:%s";
-        this.parentNode = parentNode;
-        
-    }
+	/**
+	 * @param methodGen
+	 * @param javaClass
+	 */
+	public MethodVisitor(MethodGen methodGen, JavaClass javaClass) {
+		this.javaClass = javaClass;
+		this.methodGen = methodGen;
+		this.cp = this.methodGen.getConstantPool();
+		
+		this.leaf = new Leaf(javaClass.getClassName(),
+				this.methodGen.getName(), CallTree.uuid++);
+		
+		for (Type t : this.methodGen.getArgumentTypes()) {
+			this.leaf.addArg(t.toString());
+		}
+		
+		JCallGraph.callTree.addLeaf(leaf);
+	}
 
-    public void start() {
-        if (this.methodGen.isAbstract() || this.methodGen.isNative())
-            return;
-        for (InstructionHandle ih = this.methodGen.getInstructionList().getStart(); 
-                ih != null; ih = ih.getNext()) {
-            Instruction i = ih.getInstruction();
-            
-            if (!visitInstruction(i))
-                i.accept(this);
-        }
-    }
+	/**
+	 * 
+	 */
+	public void start() {
+		if (this.methodGen.isAbstract() || this.methodGen.isNative())
+			return;
+		for (InstructionHandle ih = this.methodGen.getInstructionList()
+				.getStart(); ih != null; ih = ih.getNext()) {
+			Instruction i = ih.getInstruction();
 
-    private boolean visitInstruction(Instruction i) {
-        short opcode = i.getOpcode();
+			if (!visitInstruction(i))
+				i.accept(this);
+		}
+	}
 
-        return ((InstructionConstants.INSTRUCTIONS[opcode] != null)
-                && !(i instanceof ConstantPushInstruction) 
-                && !(i instanceof ReturnInstruction));
-    }
+	/**
+	 * @param i
+	 * @return
+	 */
+	private boolean visitInstruction(Instruction i) {
+		short opcode = i.getOpcode();
 
-    @Override
-    public void visitINVOKEVIRTUAL(INVOKEVIRTUAL i) {
-        System.out.println(String.format(format,"M",i.getReferenceType(cp),i.getMethodName(cp)));
-        JCallGraph.graph.addNeighbour(parentNode, new Node(i.getReferenceType(cp), this.methodGen.getName()));
-    }
+		return ((InstructionConstants.INSTRUCTIONS[opcode] != null)
+				&& !(i instanceof ConstantPushInstruction) && !(i instanceof ReturnInstruction));
+	}
 
-    @Override
-    public void visitINVOKEINTERFACE(INVOKEINTERFACE i) {
-        System.out.println(String.format(format,"I",i.getReferenceType(cp),i.getMethodName(cp)));
-        JCallGraph.graph.addNeighbour(parentNode, new Node(javaClass.getClassName(), this.methodGen.getName()));
-    }
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * org.apache.bcel.generic.EmptyVisitor#visitINVOKEVIRTUAL(org.apache.bcel
+	 * .generic.INVOKEVIRTUAL)
+	 */
+	@Override
+	public void visitINVOKEVIRTUAL(INVOKEVIRTUAL i) {
+		addLeaf(i);
+	}
 
-    @Override
-    public void visitINVOKESPECIAL(INVOKESPECIAL i) {
-        System.out.println(String.format(format,"O",i.getReferenceType(cp),i.getMethodName(cp)));
-        JCallGraph.graph.addNeighbour(parentNode, new Node(javaClass.getClassName(), this.methodGen.getName()));
-    }
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * org.apache.bcel.generic.EmptyVisitor#visitINVOKEINTERFACE(org.apache.
+	 * bcel.generic.INVOKEINTERFACE)
+	 */
+	@Override
+	public void visitINVOKEINTERFACE(INVOKEINTERFACE i) {
+		addLeaf(i);
+	}
 
-    @Override
-    public void visitINVOKESTATIC(INVOKESTATIC i) {
-        System.out.println(String.format(format,"S",i.getReferenceType(cp),i.getMethodName(cp)));
-        JCallGraph.graph.addNeighbour(parentNode, new Node(javaClass.getClassName(), this.methodGen.getName()));
-    }
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * org.apache.bcel.generic.EmptyVisitor#visitINVOKESPECIAL(org.apache.bcel
+	 * .generic.INVOKESPECIAL)
+	 */
+	@Override
+	public void visitINVOKESPECIAL(INVOKESPECIAL i) {
+		addLeaf(i);
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * org.apache.bcel.generic.EmptyVisitor#visitINVOKESTATIC(org.apache.bcel
+	 * .generic.INVOKESTATIC)
+	 */
+	@Override
+	public void visitINVOKESTATIC(INVOKESTATIC i) {
+		addLeaf(i);
+	}
+
+	private void addLeaf(InvokeInstruction invokeInstruction) {
+		this.invokeInstruction = invokeInstruction;
+		System.out.println(this);
+		
+		Leaf child = new Leaf(invokeInstruction
+				.getReferenceType(this.cp).toString(), invokeInstruction
+				.getMethodName(this.cp), CallTree.uuid++);
+
+		for (Type t : invokeInstruction.getArgumentTypes(cp)) {
+			child.addArg(t.toString());
+		}
+		
+		JCallGraph.callTree.addLeafToParent(leaf, child);
+
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see java.lang.Object#toString()
+	 */
+	public String toString() {
+
+		return "M:" + javaClass.getClassName() + ":" + this.methodGen.getName()
+				+ "->" + invokeInstruction.getReferenceType(this.cp) + ":"
+				+ invokeInstruction.getMethodName(this.cp);
+	}
+
+	public Leaf getLeaf() {
+		return leaf;
+	}
+
+	public void setLeaf(Leaf leaf) {
+		this.leaf = leaf;
+	}
+
 }
