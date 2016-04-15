@@ -63,7 +63,7 @@ File.open(ARGV[0]).each do |line|
             return
         end
 
-        # Total for a frame is the total time of its first level decendant
+        # Total for a frame is the total time of its first level descendant
         # plus the time required to execute all methods at the same depth
         total_time_at_depth[depth] = method_time -
                                      total_time_at_depth.fetch(depth + 1, 0) +
